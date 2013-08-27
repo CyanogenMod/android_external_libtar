@@ -29,6 +29,9 @@
 # include <unistd.h>
 #endif
 
+#ifdef HAVE_SELINUX
+# include <selinux/selinux.h>
+#endif
 
 struct tar_dev
 {
@@ -91,6 +94,31 @@ tar_append_file(TAR *t, char *realname, char *savename)
 	puts("    tar_append_file(): setting header path...");
 #endif
 	th_set_path(t, (savename ? savename : realname));
+
+#ifdef HAVE_SELINUX
+	/* get selinux context */
+	if(t->options & TAR_STORE_SELINUX)
+	{
+		if(t->th_buf.selinux_context != NULL)
+		{
+			free(t->th_buf.selinux_context);
+			t->th_buf.selinux_context = NULL;
+		}
+
+		security_context_t selinux_context = NULL;
+		if(getfilecon(realname, &selinux_context) >= 0)
+		{
+			t->th_buf.selinux_context = strdup(selinux_context);
+			freecon(selinux_context);
+		}
+		else
+		{
+#ifdef DEBUG
+			perror("Failed to get selinux context");
+#endif
+		}
+	}
+#endif
 
 	/* check if it's a hardlink */
 #ifdef DEBUG

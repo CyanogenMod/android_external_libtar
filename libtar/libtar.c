@@ -53,6 +53,8 @@ segv_handler(int sig)
 #endif
 
 
+int store_selinux_ctx = 0;
+
 #ifdef HAVE_LIBZ
 
 int use_zlib = 0;
@@ -122,6 +124,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 #endif
 		     O_WRONLY | O_CREAT, 0644,
 		     (verbose ? TAR_VERBOSE : 0)
+		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 	{
 		fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -177,6 +180,7 @@ list(char *tarfile)
 #endif
 		     O_RDONLY, 0,
 		     (verbose ? TAR_VERBOSE : 0)
+		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 	{
 		fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -238,6 +242,7 @@ extract(char *tarfile, char *rootdir)
 #endif
 		     O_RDONLY, 0,
 		     (verbose ? TAR_VERBOSE : 0)
+		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 	{
 		fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -296,7 +301,7 @@ main(int argc, char *argv[])
 
 	progname = basename(argv[0]);
 
-	while ((c = getopt(argc, argv, "cC:gtvVxz")) != -1)
+	while ((c = getopt(argc, argv, "cC:gtvVxzs")) != -1)
 		switch (c)
 		{
 		case 'V':
@@ -326,6 +331,9 @@ main(int argc, char *argv[])
 			if (mode)
 				usage(rootdir);
 			mode = MODE_LIST;
+			break;
+		case 's':
+			store_selinux_ctx = 1;
 			break;
 #ifdef HAVE_LIBZ
 		case 'z':

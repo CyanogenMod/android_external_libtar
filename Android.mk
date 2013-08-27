@@ -22,7 +22,7 @@ LOCAL_SRC_FILES := lib/append.c \
 
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/lib $(LOCAL_PATH)/compat $(LOCAL_PATH)/listhash
-LOCAL_STATIC_LIBRARIES := libc libz
+LOCAL_CFLAGS += -DHAVE_SELINUX
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -33,7 +33,7 @@ LOCAL_MODULE_TAGS = optional
 LOCAL_SRC_FILES := libtar/libtar.c
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/lib $(LOCAL_PATH)/compat $(LOCAL_PATH)/listhash $(LOCAL_PATH)/../zlib
-LOCAL_STATIC_LIBRARIES := libc libtar libz
+LOCAL_STATIC_LIBRARIES := libc libtar libz libselinux
 LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
 
 LOCAL_FORCE_STATIC_EXECUTABLE := true
