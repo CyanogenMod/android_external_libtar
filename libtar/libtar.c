@@ -37,6 +37,7 @@
 
 #include <compat.h>
 
+#include <fnmatch.h>
 
 char *progname;
 int verbose = 0;
@@ -54,6 +55,10 @@ segv_handler(int sig)
 
 
 int store_selinux_ctx = 0;
+
+#define EXCLUDES_MAX 16
+char *exclude_list[EXCLUDES_MAX];
+int exclusions=0;
 
 #ifdef HAVE_LIBZ
 
@@ -134,7 +139,20 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 	libtar_listptr_reset(&lp);
 	while (libtar_list_next(l, &lp) != 0)
 	{
+		int skip = 0;
 		pathname = (char *)libtar_listptr_data(&lp);
+		if (exclusions) {
+			int x=0;
+			for (x=0; x<exclusions; x++) {
+				if (!fnmatch(exclude_list[x], pathname,
+					FNM_PATHNAME | FNM_LEADING_DIR)) {
+						skip = 1;
+						continue;
+				}
+			}
+		}
+		if (skip)
+			continue;
 		if (pathname[0] != '/' && rootdir != NULL)
 			snprintf(buf, sizeof(buf), "%s/%s", rootdir, pathname);
 		else
@@ -225,6 +243,61 @@ list(char *tarfile)
 	return 0;
 }
 
+/* Modified copy of tar_extract_all that deals with exclusions */
+int
+tar_extract_all_with_exceptions(TAR *t, char *prefix)
+{
+        char *filename;
+        char buf[MAXPATHLEN];
+        int i;
+
+#ifdef DEBUG
+        printf("==> tar_extract_all(TAR *t, \"%s\")\n",
+               (prefix ? prefix : "(null)"));
+#endif
+
+        while ((i = th_read(t)) == 0)
+        {
+		int skip = 0;
+#ifdef DEBUG
+                puts("    tar_extract_all(): calling th_get_pathname()");
+#endif
+                filename = th_get_pathname(t);
+                if (t->options & TAR_VERBOSE)
+                        th_print_long_ls(t);
+                if (prefix != NULL)
+                        snprintf(buf, sizeof(buf), "%s/%s", prefix, filename);
+                else
+                        strlcpy(buf, filename, sizeof(buf));
+
+		if (exclusions) {
+			int x=0;
+			for (x=0; x<exclusions; x++) {
+				if (!fnmatch(exclude_list[x], buf,
+					FNM_PATHNAME | FNM_LEADING_DIR)) {
+						skip=1;
+						continue;
+				}
+			}
+		}
+		if (skip) {
+			tar_skip_regfile(t);
+			continue;
+		}
+#ifdef DEBUG
+                printf("    tar_extract_all(): calling tar_extract_file(t, "
+                       "\"%s\")\n", buf);
+#endif
+                if (tar_extract_file(t, buf) != 0)
+                {
+                        free (filename);
+                        return -1;
+                }
+                free (filename);
+        }
+
+        return (i == 1 ? 0 : -1);
+}
 
 int
 extract(char *tarfile, char *rootdir)
@@ -252,7 +325,7 @@ extract(char *tarfile, char *rootdir)
 #ifdef DEBUG
 	puts("extracting tarfile...");
 #endif
-	if (tar_extract_all(t, rootdir) != 0)
+	if (tar_extract_all_with_exceptions(t, rootdir) != 0)
 	{
 		
 		fprintf(stderr, "tar_extract_all(): %s\n", strerror(errno));
@@ -301,7 +374,7 @@ main(int argc, char *argv[])
 
 	progname = basename(argv[0]);
 
-	while ((c = getopt(argc, argv, "cC:gtvVxzs")) != -1)
+	while ((c = getopt(argc, argv, "cC:gtvVxzsX:")) != -1)
 		switch (c)
 		{
 		case 'V':
@@ -334,6 +407,14 @@ main(int argc, char *argv[])
 			break;
 		case 's':
 			store_selinux_ctx = 1;
+			break;
+		case 'X':
+			if (exclusions < EXCLUDES_MAX-1) {
+				exclude_list[exclusions++] = strdup(optarg);
+			} else {
+				fprintf(stderr, "Too many exclusions\n");
+				exit(1);
+			}
 			break;
 #ifdef HAVE_LIBZ
 		case 'z':
