@@ -188,7 +188,9 @@ tar_append_file(TAR *t, char *realname, char *savename)
 
 	/* print file info */
 	if (t->options & TAR_VERBOSE)
-		th_print_long_ls(t);
+		//th_print_long_ls(t);
+		printf("%s\n", th_get_pathname(t));
+
 
 #ifdef DEBUG
 	puts("    tar_append_file(): writing header");

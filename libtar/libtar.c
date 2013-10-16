@@ -263,8 +263,6 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
                 puts("    tar_extract_all(): calling th_get_pathname()");
 #endif
                 filename = th_get_pathname(t);
-                if (t->options & TAR_VERBOSE)
-                        th_print_long_ls(t);
                 if (prefix != NULL)
                         snprintf(buf, sizeof(buf), "%s/%s", prefix, filename);
                 else
@@ -284,6 +282,10 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 			tar_skip_regfile(t);
 			continue;
 		}
+
+                if (t->options & TAR_VERBOSE)
+			printf("%s\n", th_get_pathname(t));
+                        //th_print_long_ls(t);
 #ifdef DEBUG
                 printf("    tar_extract_all(): calling tar_extract_file(t, "
                        "\"%s\")\n", buf);
