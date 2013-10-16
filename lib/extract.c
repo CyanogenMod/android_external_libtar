@@ -21,6 +21,7 @@
 
 #ifdef STDC_HEADERS
 # include <stdlib.h>
+# include <string.h>
 #endif
 
 #ifdef HAVE_UNISTD_H
@@ -99,6 +100,7 @@ tar_extract_file(TAR *t, char *realname)
 {
 	int i;
 	linkname_t *lnp;
+	char *pathname;
 
 	if (t->options & TAR_NOOVERWRITE)
 	{
@@ -140,12 +142,14 @@ tar_extract_file(TAR *t, char *realname)
 	lnp = (linkname_t *)calloc(1, sizeof(linkname_t));
 	if (lnp == NULL)
 		return -1;
-	strlcpy(lnp->ln_save, th_get_pathname(t), sizeof(lnp->ln_save));
+	pathname = th_get_pathname(t);
+	strlcpy(lnp->ln_save, pathname, sizeof(lnp->ln_save));
 	strlcpy(lnp->ln_real, realname, sizeof(lnp->ln_real));
 #ifdef DEBUG
 	printf("tar_extract_file(): calling libtar_hash_add(): key=\"%s\", "
-	       "value=\"%s\"\n", th_get_pathname(t), realname);
+	       "value=\"%s\"\n", pathname, realname);
 #endif
+	free(pathname);
 	if (libtar_hash_add(t->h, lnp) != 0)
 		return -1;
 

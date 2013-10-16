@@ -26,15 +26,15 @@ AC_SUBST([MKDIR])
 
 
 dnl ### Check for compiler et al. ###################################
+AC_AIX
 AC_PROG_CC
-AC_PROG_RANLIB
+AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 
 dnl ### Compiler characteristics. ##################################
-AC_AIX
 AC_C_CONST
 
 
@@ -93,9 +93,9 @@ COMPAT_FUNC_MAKEDEV
 COMPAT_FUNC_SNPRINTF
 COMPAT_FUNC_STRDUP
 AC_FUNC_STRFTIME
-COMPAT_FUNC_STRLCPY
 COMPAT_FUNC_STRMODE
-COMPAT_FUNC_STRSEP
+dnl COMPAT_FUNC_STRLCPY converted by compat/modules.ac
+dnl COMPAT_FUNC_STRSEP
 
 
 dnl ### Check for libraries. #######################################

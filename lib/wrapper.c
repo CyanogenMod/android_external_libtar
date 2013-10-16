@@ -76,6 +76,7 @@ tar_extract_all(TAR *t, char *prefix)
 			snprintf(buf, sizeof(buf), "%s/%s", prefix, filename);
 		else
 			strlcpy(buf, filename, sizeof(buf));
+		free(filename);
 #ifdef DEBUG
 		printf("    tar_extract_all(): calling tar_extract_file(t, "
 		       "\"%s\")\n", buf);
