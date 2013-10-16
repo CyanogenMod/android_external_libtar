@@ -2,6 +2,7 @@ dnl ### Normal initialization. ######################################
 AC_INIT([libtar], [1.2.11])
 AC_PREREQ([2.57])
 AC_CONFIG_AUX_DIR([autoconf])
+AC_CONFIG_MACRO_DIR([autoconf])
 AC_CONFIG_HEADERS([config.h])
 AC_COPYRIGHT([[
 Copyright (c) 1998-2003 University of Illinois Board of Trustees
