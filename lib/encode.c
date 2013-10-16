@@ -30,7 +30,10 @@ th_finish(TAR *t)
 	int i, sum = 0;
 
 	if (t->options & TAR_GNU)
-		strncpy(t->th_buf.magic, "ustar  ", 8);
+	{
+		memcpy(t->th_buf.magic, "ustar ", 6);
+		memcpy(t->th_buf.version, " \0", 2);
+	}
 	else
 	{
 		strncpy(t->th_buf.version, TVERSION, TVERSLEN);
