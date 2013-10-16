@@ -4943,8 +4943,8 @@ main ()
   for (i = 0; i < 256; i++)
     if (XOR (islower (i), ISLOWER (i))
 	|| toupper (i) != TOUPPER (i))
-      exit(2);
-  exit (0);
+      return 2;
+  return 0;
 }
 _ACEOF
 rm -f conftest$ac_exeext
@@ -20083,8 +20083,8 @@ main ()
   for (i = 0; i < 256; i++)
     if (XOR (islower (i), ISLOWER (i))
 	|| toupper (i) != TOUPPER (i))
-      exit(2);
-  exit (0);
+      return (2);
+  return (0);
 }
 _ACEOF
 rm -f conftest$ac_exeext
@@ -22411,6 +22411,7 @@ cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
   int length;
@@ -22437,10 +22438,10 @@ int main() {
     if ((snprintf(test1, tests[i].length, "%s", tests[i].test)
          != tests[i].retval) ||
         (tests[i].result && strcmp(tests[i].result, test1)))
-      exit(1);
+      return (1);
   }
 
-  exit(0);
+  return (0);
 }
 
 _ACEOF
