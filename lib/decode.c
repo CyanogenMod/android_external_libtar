@@ -29,7 +29,7 @@ th_get_pathname(TAR *t)
 	char filename[MAXPATHLEN];
 
 	if (t->th_buf.gnu_longname)
-		return t->th_buf.gnu_longname;
+		return strdup(t->th_buf.gnu_longname);
 
 	if (t->th_buf.prefix[0] != '\0')
 	{
