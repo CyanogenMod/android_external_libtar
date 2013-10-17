@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <errno.h>
 #include <sys/param.h>
 
@@ -112,6 +113,82 @@ tartype_t gztype = { (openfunc_t) gzopen_frontend, (closefunc_t) gzclose,
 
 #endif /* HAVE_LIBZ */
 
+int
+tar_append_tree_with_exceptions(TAR *t, char *realdir, char *savedir)
+{
+	char realpath[MAXPATHLEN];
+	char savepath[MAXPATHLEN];
+	struct dirent *dent;
+	DIR *dp;
+	struct stat s;
+
+#ifdef DEBUG
+	printf("==> tar_append_tree(0x%lx, \"%s\", \"%s\")\n",
+	       t, realdir, (savedir ? savedir : "[NULL]"));
+#endif
+
+	if (tar_append_file(t, realdir, savedir) != 0)
+		return -1;
+
+#ifdef DEBUG
+	puts("    tar_append_tree(): done with tar_append_file()...");
+#endif
+
+	dp = opendir(realdir);
+	if (dp == NULL)
+	{
+		if (errno == ENOTDIR)
+			return 0;
+		return -1;
+	}
+	while ((dent = readdir(dp)) != NULL)
+	{
+		int skip=0;
+		if (strcmp(dent->d_name, ".") == 0 ||
+		    strcmp(dent->d_name, "..") == 0)
+			continue;
+
+		snprintf(realpath, MAXPATHLEN, "%s/%s", realdir,
+			 dent->d_name);
+		if (savedir)
+			snprintf(savepath, MAXPATHLEN, "%s/%s", savedir,
+				 dent->d_name);
+
+		if (lstat(realpath, &s) != 0)
+			return -1;
+
+		if (exclusions) {
+			int x=0;
+			for (x=0; x<exclusions; x++) {
+				if (!fnmatch(exclude_list[x],
+						(strchr(exclude_list[x],'/') ? realpath : dent->d_name),
+						FNM_PATHNAME | FNM_LEADING_DIR)) {
+					skip=1;
+					continue;
+				}
+			}
+		}
+		if (skip) {
+			continue;
+		}
+
+		if (S_ISDIR(s.st_mode))
+		{
+			if (tar_append_tree_with_exceptions(t, realpath,
+					    (savedir ? savepath : NULL)) != 0)
+				return -1;
+			continue;
+		}
+
+		if (tar_append_file(t, realpath,
+				    (savedir ? savepath : NULL)) != 0)
+			return -1;
+	}
+
+	closedir(dp);
+
+	return 0;
+}
 
 int
 create(char *tarfile, char *rootdir, libtar_list_t *l)
@@ -156,25 +233,12 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 	libtar_listptr_reset(&lp);
 	while (libtar_list_next(l, &lp) != 0)
 	{
-		int skip = 0;
 		pathname = (char *)libtar_listptr_data(&lp);
-		if (exclusions) {
-			int x=0;
-			for (x=0; x<exclusions; x++) {
-				if (!fnmatch(exclude_list[x], pathname,
-					FNM_PATHNAME | FNM_LEADING_DIR)) {
-						skip = 1;
-						continue;
-				}
-			}
-		}
-		if (skip)
-			continue;
 		if (pathname[0] != '/' && rootdir != NULL)
 			snprintf(buf, sizeof(buf), "%s/%s", rootdir, pathname);
 		else
 			strlcpy(buf, pathname, sizeof(buf));
-		if (tar_append_tree(t, buf, pathname) != 0)
+		if (tar_append_tree_with_exceptions(t, buf, pathname) != 0)
 		{
 			fprintf(stderr,
 				"tar_append_tree(\"%s\", \"%s\"): %s\n", buf,
@@ -288,7 +352,8 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 		if (exclusions) {
 			int x=0;
 			for (x=0; x<exclusions; x++) {
-				if (!fnmatch(exclude_list[x], buf,
+				if (!fnmatch(exclude_list[x],
+						(strchr(exclude_list[x],'/') ? buf : filename),
 						FNM_PATHNAME | FNM_LEADING_DIR)) {
 					skip=1;
 					continue;
