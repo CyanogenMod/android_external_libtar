@@ -264,34 +264,34 @@ list(char *tarfile)
 int
 tar_extract_all_with_exceptions(TAR *t, char *prefix)
 {
-        char *filename;
-        char buf[MAXPATHLEN];
-        int i;
+	char *filename;
+	char buf[MAXPATHLEN];
+	int i;
 
 #ifdef DEBUG
-        printf("==> tar_extract_all(TAR *t, \"%s\")\n",
-               (prefix ? prefix : "(null)"));
+	printf("==> tar_extract_all(TAR *t, \"%s\")\n",
+			(prefix ? prefix : "(null)"));
 #endif
 
-        while ((i = th_read(t)) == 0)
-        {
+	while ((i = th_read(t)) == 0)
+	{
 		int skip = 0;
 #ifdef DEBUG
-                puts("    tar_extract_all(): calling th_get_pathname()");
+		puts("    tar_extract_all(): calling th_get_pathname()");
 #endif
-                filename = th_get_pathname(t);
-                if (prefix != NULL)
-                        snprintf(buf, sizeof(buf), "%s/%s", prefix, filename);
-                else
-                        strlcpy(buf, filename, sizeof(buf));
+		filename = th_get_pathname(t);
+		if (prefix != NULL)
+			snprintf(buf, sizeof(buf), "%s/%s", prefix, filename);
+		else
+			strlcpy(buf, filename, sizeof(buf));
 
 		if (exclusions) {
 			int x=0;
 			for (x=0; x<exclusions; x++) {
 				if (!fnmatch(exclude_list[x], buf,
-					FNM_PATHNAME | FNM_LEADING_DIR)) {
-						skip=1;
-						continue;
+						FNM_PATHNAME | FNM_LEADING_DIR)) {
+					skip=1;
+					continue;
 				}
 			}
 		}
@@ -300,22 +300,22 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 			continue;
 		}
 
-                if (t->options & TAR_VERBOSE)
+		if (t->options & TAR_VERBOSE)
 			printf("%s\n", th_get_pathname(t));
-                        //th_print_long_ls(t);
+		//th_print_long_ls(t);
 #ifdef DEBUG
-                printf("    tar_extract_all(): calling tar_extract_file(t, "
-                       "\"%s\")\n", buf);
+		printf("    tar_extract_all(): calling tar_extract_file(t, "
+				"\"%s\")\n", buf);
 #endif
-                if (tar_extract_file(t, buf) != 0)
-                {
-                        free (filename);
-                        return -1;
-                }
-                free (filename);
-        }
+		if (tar_extract_file(t, buf) != 0)
+		{
+			free (filename);
+			return -1;
+		}
+		free (filename);
+	}
 
-        return (i == 1 ? 0 : -1);
+	return (i == 1 ? 0 : -1);
 }
 
 int
@@ -495,6 +495,9 @@ main(int argc, char *argv[])
 	}
 
 	free(rootdir);
+	while (exclusions) {
+		free(exclude_list[--exclusions]);
+	}
 	return return_code;
 }
 
