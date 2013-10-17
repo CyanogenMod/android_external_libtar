@@ -180,6 +180,9 @@ tar_append_tree_with_exceptions(TAR *t, char *realdir, char *savedir)
 			continue;
 		}
 
+		if (verbose == 2) {
+			fprintf(stderr, "%s\n", th_get_pathname(t));
+		}
 		if (tar_append_file(t, realpath,
 				    (savedir ? savepath : NULL)) != 0)
 			return -1;
@@ -199,6 +202,10 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 	libtar_listptr_t lp;
 
 	if (strnlen(tarfile,2) == 1 && !strncmp(tarfile,"-",1)) {
+		if (verbose) {
+			// stdout is busy with the archive, we'll print this ourselves, to stderr
+			verbose = 2;
+		}
 		if (tar_fdopen(&t, fileno(stdout), tarfile,
 #ifdef HAVE_LIBZ
 		     (use_zlib ? &gztype : NULL),
@@ -206,7 +213,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 		     NULL,
 #endif
 		     O_WRONLY | O_CREAT, 0644,
-		     (verbose ? TAR_VERBOSE : 0)
+		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
@@ -221,7 +228,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 		     NULL,
 #endif
 		     O_WRONLY | O_CREAT, 0644,
-		     (verbose ? TAR_VERBOSE : 0)
+		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
@@ -278,7 +285,7 @@ list(char *tarfile)
 		     NULL,
 #endif
 		     O_RDONLY, 0,
-		     (verbose ? TAR_VERBOSE : 0)
+		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 	{
@@ -399,7 +406,7 @@ extract(char *tarfile, char *rootdir)
 		     NULL,
 #endif
 		     O_RDONLY, 0,
-		     (verbose ? TAR_VERBOSE : 0)
+		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
@@ -414,7 +421,7 @@ extract(char *tarfile, char *rootdir)
 		     NULL,
 #endif
 		     O_RDONLY, 0,
-		     (verbose ? TAR_VERBOSE : 0)
+		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
