@@ -121,7 +121,8 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 	char buf[MAXPATHLEN];
 	libtar_listptr_t lp;
 
-	if (tar_open(&t, tarfile,
+	if (strnlen(tarfile,2) == 1 && !strncmp(tarfile,"-",1)) {
+		if (tar_fdopen(&t, fileno(stdout), tarfile,
 #ifdef HAVE_LIBZ
 		     (use_zlib ? &gztype : NULL),
 #else
@@ -131,9 +132,25 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 		     (verbose ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
-	{
-		fprintf(stderr, "tar_open(): %s\n", strerror(errno));
-		return -1;
+		{
+			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
+			return -1;
+		}
+	} else {
+		if (tar_open(&t, tarfile,
+#ifdef HAVE_LIBZ
+		     (use_zlib ? &gztype : NULL),
+#else
+		     NULL,
+#endif
+		     O_WRONLY | O_CREAT, 0644,
+		     (verbose ? TAR_VERBOSE : 0)
+		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+		     | (use_gnu ? TAR_GNU : 0)) == -1)
+		{
+			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
+			return -1;
+		}
 	}
 
 	libtar_listptr_reset(&lp);
@@ -309,7 +326,8 @@ extract(char *tarfile, char *rootdir)
 #ifdef DEBUG
 	puts("opening tarfile...");
 #endif
-	if (tar_open(&t, tarfile,
+	if (strnlen(tarfile,2) == 1 && !strncmp(tarfile,"-",1)) {
+		if (tar_fdopen(&t, fileno(stdin), tarfile,
 #ifdef HAVE_LIBZ
 		     (use_zlib ? &gztype : NULL),
 #else
@@ -319,9 +337,25 @@ extract(char *tarfile, char *rootdir)
 		     (verbose ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
-	{
-		fprintf(stderr, "tar_open(): %s\n", strerror(errno));
-		return -1;
+		{
+			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
+			return -1;
+		}
+	} else {
+		if (tar_open(&t, tarfile,
+#ifdef HAVE_LIBZ
+		     (use_zlib ? &gztype : NULL),
+#else
+		     NULL,
+#endif
+		     O_RDONLY, 0,
+		     (verbose ? TAR_VERBOSE : 0)
+		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+		     | (use_gnu ? TAR_GNU : 0)) == -1)
+		{
+			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
+			return -1;
+		}
 	}
 
 #ifdef DEBUG
