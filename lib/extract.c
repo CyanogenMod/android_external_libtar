@@ -38,13 +38,14 @@ typedef struct linkname linkname_t;
 
 
 static int
-tar_set_file_perms(TAR *t, char *realname)
+tar_set_file_perms(TAR *t, const char *realname)
 {
 	mode_t mode;
 	uid_t uid;
 	gid_t gid;
 	struct utimbuf ut;
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 	pn = th_get_pathname(t);
 	filename = (realname ? realname : pn);
@@ -101,7 +102,7 @@ tar_set_file_perms(TAR *t, char *realname)
 
 /* switchboard */
 int
-tar_extract_file(TAR *t, char *realname)
+tar_extract_file(TAR *t, const char *realname)
 {
 	int i;
 	linkname_t *lnp;
@@ -175,7 +176,7 @@ tar_extract_file(TAR *t, char *realname)
 
 /* extract regular file */
 int
-tar_extract_regfile(TAR *t, char *realname)
+tar_extract_regfile(TAR *t, const char *realname)
 {
 	mode_t mode;
 	size_t size;
@@ -184,7 +185,8 @@ tar_extract_regfile(TAR *t, char *realname)
 	int fdout;
 	int i, k;
 	char buf[T_BLOCKSIZE];
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 #ifdef DEBUG
 	printf("==> tar_extract_regfile(t=0x%lx, realname=\"%s\")\n", t,
@@ -316,9 +318,10 @@ tar_skip_regfile(TAR *t)
 
 /* hardlink */
 int
-tar_extract_hardlink(TAR * t, char *realname)
+tar_extract_hardlink(TAR * t, const char *realname)
 {
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 	char *linktgt = NULL;
 	linkname_t *lnp;
 	libtar_hashptr_t hp;
@@ -365,9 +368,10 @@ tar_extract_hardlink(TAR * t, char *realname)
 
 /* symlink */
 int
-tar_extract_symlink(TAR *t, char *realname)
+tar_extract_symlink(TAR *t, const char *realname)
 {
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 	if (!TH_ISSYM(t))
 	{
@@ -406,11 +410,12 @@ tar_extract_symlink(TAR *t, char *realname)
 
 /* character device */
 int
-tar_extract_chardev(TAR *t, char *realname)
+tar_extract_chardev(TAR *t, const char *realname)
 {
 	mode_t mode;
 	unsigned long devmaj, devmin;
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 	if (!TH_ISCHR(t))
 	{
@@ -451,11 +456,12 @@ tar_extract_chardev(TAR *t, char *realname)
 
 /* block device */
 int
-tar_extract_blockdev(TAR *t, char *realname)
+tar_extract_blockdev(TAR *t, const char *realname)
 {
 	mode_t mode;
 	unsigned long devmaj, devmin;
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 	if (!TH_ISBLK(t))
 	{
@@ -496,10 +502,11 @@ tar_extract_blockdev(TAR *t, char *realname)
 
 /* directory */
 int
-tar_extract_dir(TAR *t, char *realname)
+tar_extract_dir(TAR *t, const char *realname)
 {
 	mode_t mode;
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 	if (!TH_ISDIR(t))
 	{
@@ -558,10 +565,11 @@ tar_extract_dir(TAR *t, char *realname)
 
 /* FIFO */
 int
-tar_extract_fifo(TAR *t, char *realname)
+tar_extract_fifo(TAR *t, const char *realname)
 {
 	mode_t mode;
-	char *filename,*pn;
+	const char *filename;
+	char *pn;
 
 	if (!TH_ISFIFO(t))
 	{
