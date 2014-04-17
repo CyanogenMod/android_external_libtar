@@ -289,4 +289,56 @@ tar_append_regfile(TAR *t, const char *realname)
 	return 0;
 }
 
+/* add file contents to a tarchive */
+int
+tar_append_file_contents(TAR *t, const char *savename, void *buf, size_t len)
+{
+	struct stat st;
+
+	memset(&st, 0, sizeof(st));
+	st.st_mode = S_IFREG | 0644;
+	st.st_mtime = time(NULL);
+	st.st_size = len;
+
+	th_set_from_stat(t, &st);
+	th_set_path(t, savename);
+
+	/* write header */
+	if (th_write(t) != 0)
+	{
+#ifdef DEBUG
+		printf("t->fd = %d\n", t->fd);
+#endif
+		return -1;
+	}
+
+	return tar_append_buffer(t, buf, len);
+}
+
+int
+tar_append_buffer(TAR *t, void *buf, size_t len)
+{
+	char block[T_BLOCKSIZE];
+	int filefd;
+	int i, j;
+	size_t size;
+
+	size = len;
+	for (i = size; i > T_BLOCKSIZE; i -= T_BLOCKSIZE)
+	{
+		if (tar_block_write(t, buf) == -1)
+			return -1;
+		buf = (char *)buf + T_BLOCKSIZE;
+	}
+
+	if (i > 0)
+	{
+		memcpy(block, buf, i);
+		memset(&(block[i]), 0, T_BLOCKSIZE - i);
+		if (tar_block_write(t, &block) == -1)
+			return -1;
+	}
+
+	return 0;
+}
 
