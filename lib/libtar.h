@@ -148,6 +148,19 @@ int tar_append_eof(TAR *t);
 /* add file contents to a tarchive */
 int tar_append_regfile(TAR *t, const char *realname);
 
+/* Appends in-memory file contents to a tarchive.
+ * Arguments:
+ *    t        = TAR handle to append to
+ *    savename = name to save the file under in the archive
+ *    mode     = mode
+ *    uid, gid = owner
+ *    buf, len = in-memory buffer
+ */
+int tar_append_file_contents(TAR *t, const char *savename, mode_t mode,
+                             uid_t uid, gid_t gid, void *buf, size_t len);
+
+/* add buffer to a tarchive */
+int tar_append_buffer(TAR *t, void *buf, size_t len);
 
 /***** block.c *************************************************************/
 
@@ -242,6 +255,8 @@ int tar_extract_fifo(TAR *t, const char *realname);
 int tar_extract_regfile(TAR *t, const char *realname);
 int tar_skip_regfile(TAR *t);
 
+/* extract regfile to buffer */
+int tar_extract_file_contents(TAR *t, void *buf, size_t *lenp);
 
 /***** output.c ************************************************************/
 

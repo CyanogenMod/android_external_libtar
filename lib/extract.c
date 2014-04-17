@@ -587,4 +587,60 @@ tar_extract_fifo(TAR *t, const char *realname)
 	return 0;
 }
 
+/* extract file contents from a tarchive */
+int
+tar_extract_file_contents(TAR *t, void *buf, size_t *lenp)
+{
+	char block[T_BLOCKSIZE];
+	size_t size;
+	int fdout;
+	int i, k;
+
+#ifdef DEBUG
+	printf("==> tar_extract_file_contents(t=0x%lx, buf=%p)\n", t,
+	       buf);
+#endif
+
+	if (!TH_ISREG(t))
+	{
+		errno = EINVAL;
+		return -1;
+	}
+
+	size = th_get_size(t);
+	if (size > *lenp)
+	{
+		errno = ENOSPC;
+		return -1;
+	}
+
+	/* extract the file */
+	for (i = size; i >= T_BLOCKSIZE; i -= T_BLOCKSIZE)
+	{
+		k = tar_block_read(t, buf);
+		if (k != T_BLOCKSIZE)
+		{
+			if (k != -1)
+				errno = EINVAL;
+			return -1;
+		}
+		buf = (char *)buf + T_BLOCKSIZE;
+	}
+	if (i > 0) {
+		k = tar_block_read(t, block);
+		if (k != T_BLOCKSIZE)
+		{
+			if (k != -1)
+				errno = EINVAL;
+			return -1;
+		}
+		memcpy(buf, block, i);
+	}
+	*lenp = size;
+
+#ifdef DEBUG
+	printf("### done extracting contents\n");
+#endif
+	return 0;
+}
 
