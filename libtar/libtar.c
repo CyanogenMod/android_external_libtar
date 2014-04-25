@@ -40,9 +40,11 @@
 
 #include <fnmatch.h>
 
+#include <getopt.h>
+
 char *progname;
 int verbose = 0;
-int use_gnu = 0;
+int use_gnu = 1;
 
 #ifdef DEBUG
 void
@@ -56,10 +58,11 @@ segv_handler(int sig)
 
 
 int store_selinux_ctx = 0;
+int use_numeric_id = 0;
 
 #define EXCLUDES_MAX 16
 char *exclude_list[EXCLUDES_MAX];
-int exclusions=0;
+int exclusions = 0;
 
 #ifdef HAVE_LIBZ
 
@@ -164,7 +167,7 @@ tar_append_tree_with_exceptions(TAR *t, char *realdir, char *savedir)
 						(strchr(exclude_list[x],'/') ? realpath : dent->d_name),
 						FNM_PATHNAME | FNM_LEADING_DIR)) {
 					skip=1;
-					continue;
+					break; //XXX
 				}
 			}
 		}
@@ -181,7 +184,9 @@ tar_append_tree_with_exceptions(TAR *t, char *realdir, char *savedir)
 		}
 
 		if (verbose == 2) {
-			fprintf(stderr, "%s\n", th_get_pathname(t));
+			char *f = th_get_pathname(t);
+			fprintf(stderr, "%s\n", f);
+			free(f);
 		}
 		if (tar_append_file(t, realpath,
 				    (savedir ? savepath : NULL)) != 0)
@@ -215,6 +220,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 		     O_WRONLY | O_CREAT, 0644,
 		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+		     | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
 			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -230,6 +236,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 		     O_WRONLY | O_CREAT, 0644,
 		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+		     | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
 			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -278,16 +285,35 @@ list(char *tarfile)
 	TAR *t;
 	int i;
 
-	if (tar_open(&t, tarfile,
+	if (strnlen(tarfile,2) == 1 && !strncmp(tarfile,"-",1))
+	{
+		if (tar_fdopen(&t, fileno(stdin), tarfile,
 #ifdef HAVE_LIBZ
-		     (use_zlib ? &gztype : NULL),
+			       (use_zlib ? &gztype : NULL),
 #else
-		     NULL,
+			       NULL,
 #endif
-		     O_RDONLY, 0,
-		     (verbose == 1 ? TAR_VERBOSE : 0)
-		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
-		     | (use_gnu ? TAR_GNU : 0)) == -1)
+			       O_RDONLY, 0,
+			       (verbose == 1 ? TAR_VERBOSE : 0)
+			       | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+			       | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
+			       | (use_gnu ? TAR_GNU : 0)) == -1)
+		{
+			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
+			return -1;
+		}
+	}
+	else if (tar_open(&t, tarfile,
+#ifdef HAVE_LIBZ
+			  (use_zlib ? &gztype : NULL),
+#else
+			  NULL,
+#endif
+			  O_RDONLY, 0,
+			  (verbose == 1 ? TAR_VERBOSE : 0)
+			  | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+			  | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
+			  | (use_gnu ? TAR_GNU : 0)) == -1)
 	{
 		fprintf(stderr, "tar_open(): %s\n", strerror(errno));
 		return -1;
@@ -363,17 +389,18 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 						(strchr(exclude_list[x],'/') ? buf : filename),
 						FNM_PATHNAME | FNM_LEADING_DIR)) {
 					skip=1;
-					continue;
+					break; //XXX
 				}
 			}
 		}
 		if (skip) {
 			tar_skip_regfile(t);
+			free(filename);
 			continue;
 		}
 
 		if (t->options & TAR_VERBOSE)
-			printf("%s\n", th_get_pathname(t));
+			printf("%s\n", filename);
 		//th_print_long_ls(t);
 #ifdef DEBUG
 		printf("    tar_extract_all(): calling tar_extract_file(t, "
@@ -408,6 +435,7 @@ extract(char *tarfile, char *rootdir)
 		     O_RDONLY, 0,
 		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+		     | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
 			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -423,6 +451,7 @@ extract(char *tarfile, char *rootdir)
 		     O_RDONLY, 0,
 		     (verbose == 1 ? TAR_VERBOSE : 0)
 		     | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+		     | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
 		     | (use_gnu ? TAR_GNU : 0)) == -1)
 		{
 			fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -435,7 +464,6 @@ extract(char *tarfile, char *rootdir)
 #endif
 	if (tar_extract_all_with_exceptions(t, rootdir) != 0)
 	{
-		
 		fprintf(stderr, "tar_extract_all(): %s\n", strerror(errno));
 		tar_close(t);
 		return -1;
@@ -453,41 +481,93 @@ extract(char *tarfile, char *rootdir)
 	return 0;
 }
 
-
-void
-usage(void *rootdir)
+static void
+usage()
 {
-	printf("Usage: %s [-C rootdir] [-g] [-z] -x|-t filename.tar\n",
-	       progname);
-	printf("       %s [-C rootdir] [-g] [-z] -c filename.tar ...\n",
-	       progname);
-	free(rootdir);
-	exit(-1);
+	printf("Usage: %s [OPTION...] [FILE]...\n", progname);
+	printf("Examples:\n"
+		   "   tar -cf archive.tar foo bar  # Create archive.tar from files foo and bar.\n"
+		   "   tar -tvf archive.tar         # List all files in archive.tar verbosely.\n"
+		   "   tar -xf archive.tar          # Extract all files from archive.tar.\n"
+	);
+	printf("\n");
+	printf("Main operation mode:\n"
+		   "   -c, --create     create a new archive\n"
+		   "   -x, --extract    extract files from an archive\n"
+		   "   -t, --list       list the contents of an archive\n"
+	);
+	printf("\n");
+	printf("Valid Options:\n"
+		   "   -V, --version\n"
+		   "   -C, --directory\n"
+		   "   -v, --verbose\n"
+		   "   -H, --format [ustar][gnu](default)\n"
+		   "   -T, --files-from\n"
+		   "   -f, --file\n"
+		   "   -z, --gzip\n"
+		   "   -s, --selinux\n"
+		   "   -X, --exclude\n"
+		   "   -n, --numeric-owner\n"
+	);
 }
 
+static void
+free_string_array(char** array, int num)
+{
+	if (array == NULL || num == 0)
+		return;
+
+	char* cursor = array[0];
+	int i = 0;
+	while (i < num) {
+		free(cursor);
+		cursor = array[++i];
+	}
+	free(array);
+}
 
 #define MODE_LIST	1
 #define MODE_CREATE	2
 #define MODE_EXTRACT	3
 
 int
-main(int argc, char *argv[])
+main(int argc, char **argv)
 {
 	char *tarfile = NULL;
 	char *rootdir = NULL;
-	int c;
+	char *file_list_path = NULL;
+	int c = 0;
 	int mode = 0;
+	int ret = 0;
 	libtar_list_t *l;
-	int return_code = -2;
 
 	progname = basename(argv[0]);
 
-	while ((c = getopt(argc, argv, "cC:gtvVxzsX:")) != -1)
-		switch (c)
-		{
+	static struct option long_options[] = {
+		{"version", no_argument, 0, 'V'},
+		{"directory", required_argument, 0, 'C'},
+		{"verbose", no_argument, 0, 'v'},
+		{"format", required_argument, 0, 'H'},
+		{"create", no_argument, 0, 'c'},
+		{"files-from", required_argument, 0, 'T'},
+		{"file", required_argument, 0, 'f'},
+		{"extract", no_argument, 0, 'x'},
+		{"list", no_argument, 0, 't'},
+		{"selinux", no_argument, 0, 's'},
+		{"exclude", required_argument, 0, 'X'},
+		{"numeric-owner", no_argument, 0, 'n'},
+#ifdef HAVE_LIBZ
+		{"gzip", no_argument, 0, 'z'},
+#endif
+		{0, 0, 0, 0}
+	};
+
+	int option_index = 0;
+	while (ret == 0 && (c = getopt_long(argc, argv, "VC:vH:cT:f:xtsX:nz", long_options, &option_index)) != -1) {
+		switch (c) {
 		case 'V':
-			printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n",
-			       libtar_version);
+			printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n", libtar_version);
+			printf("minitar 1.0 <2014>\n");
 			break;
 		case 'C':
 			rootdir = strdup(optarg);
@@ -495,23 +575,40 @@ main(int argc, char *argv[])
 		case 'v':
 			verbose = 1;
 			break;
-		case 'g':
-			use_gnu = 1;
+		case 'H':
+			if (strcmp(optarg, "gnu") == 0)
+				use_gnu = 1; // default format
+			else if (strcmp(optarg, "ustar") == 0)
+				use_gnu = 0;
+			else
+				ret = 2;
 			break;
 		case 'c':
 			if (mode)
-				usage(rootdir);
-			mode = MODE_CREATE;
+				ret = 2;
+			else
+				mode = MODE_CREATE;
+			break;
+		case 'T':
+			file_list_path = strdup(optarg);
+			break;
+		case 'f':
+			tarfile = strdup(optarg);
 			break;
 		case 'x':
 			if (mode)
-				usage(rootdir);
-			mode = MODE_EXTRACT;
+				ret = 2;
+			else
+				mode = MODE_EXTRACT;
+			break;
+		case 'n':
+			use_numeric_id = 1;
 			break;
 		case 't':
 			if (mode)
-				usage(rootdir);
-			mode = MODE_LIST;
+				ret = 2;
+			else
+				mode = MODE_LIST;
 			break;
 		case 's':
 			store_selinux_ctx = 1;
@@ -521,7 +618,7 @@ main(int argc, char *argv[])
 				exclude_list[exclusions++] = strdup(optarg);
 			} else {
 				fprintf(stderr, "Too many exclusions\n");
-				exit(1);
+				ret = 2;
 			}
 			break;
 #ifdef HAVE_LIBZ
@@ -530,47 +627,134 @@ main(int argc, char *argv[])
 			break;
 #endif /* HAVE_LIBZ */
 		default:
-			usage(rootdir);
+			ret = 2;
 		}
+	}
 
-	if (!mode || ((argc - optind) < (mode == MODE_CREATE ? 2 : 1)))
-	{
-#ifdef DEBUG
-		printf("argc - optind == %d\tmode == %d\n", argc - optind,
-		       mode);
-#endif
-		usage(rootdir);
+	// check if we have a command with valid options
+	// --files-from (-T) use
+	if (file_list_path != NULL) {
+		if (mode != MODE_CREATE) {
+			printf("option -T (--files-from) must be used with -c\n");
+			ret = 2;
+		}
+		if (optind < argc) {
+			printf("(-T): non used options!\n");
+			ret = 2;
+		}
+	}
+
+	// do we have a main command ? (c, x, t)
+	if (!mode)
+		ret = 2;
+
+	// extra invalid options?
+	if (optind < argc && mode != MODE_CREATE) {
+		printf("Non used options while in non create mode!\n");
+		ret = 2;
+	}
+
+	// fail
+	if (ret != 0) {
+		usage();
+		goto out;
 	}
 
 #ifdef DEBUG
 	signal(SIGSEGV, segv_handler);
 #endif
 
-	switch (mode)
-	{
-	case MODE_EXTRACT:
-		return_code = extract(argv[optind], rootdir);
+	ret = 2;
+	switch (mode) {
+	case MODE_EXTRACT: {
+		if (tarfile == NULL)
+			tarfile = strdup("-");
+		ret = extract(tarfile, rootdir);
 		break;
-	case MODE_CREATE:
-		tarfile = argv[optind];
+	}
+	case MODE_CREATE: {
+		char **file_list_entries;
+		int file_list_count = 0;
+		int i = 0;
+
+		// default to stdout if -f option is not used
+		if (tarfile == NULL)
+			tarfile = strdup("-");
 		l = libtar_list_new(LIST_QUEUE, NULL);
-		for (c = optind + 1; c < argc; c++)
-			libtar_list_add(l, argv[c]);
-		return_code =  create(tarfile, rootdir, l);
-		libtar_list_free (l, NULL);
+			if (file_list_path != NULL) {
+			// process files from --files-from (-T) option
+			char line[4096];
+			FILE* fp = fopen(file_list_path, "rb");
+			if (fp == NULL) {
+				printf("can't open file list '%s'\n", file_list_path);
+				goto out;
+			}
+
+			// get list items num
+			while (fgets(line, sizeof(line), fp) != NULL) {
+				// skip empty lines (no support for file names with new line in GNU unless we use --null option
+				if (line[0] == '\n')
+					continue;
+				size_t len = strlen(line);
+				if (line[len - 1] == '\n')
+					line[len - 1] = '\0';
+				++file_list_count;
+			}
+
+			if (file_list_count != 0) {
+				// malloc list items (needed as libtar_list_add() is just pointing to 2nd argument)
+				file_list_entries = (char**)malloc(file_list_count * sizeof(*file_list_entries));
+
+				// read again through files in list and add them to libtar queue
+				rewind(fp);
+				while (fgets(line, sizeof(line), fp) != NULL && i < file_list_count) {
+					// skip empty lines (no support for file names with new line in GNU unless we use --null option
+					if (line[0] == '\n')
+						continue;
+					size_t len = strlen(line);
+					if (line[len - 1] == '\n')
+						line[len - 1] = '\0';
+					file_list_entries[i] = strdup(line);
+					libtar_list_add(l, file_list_entries[i]);
+					++i;
+				}
+			}
+
+			fclose(fp);
+			if (file_list_count == 0) {
+				printf("empty file list '%s'\n", file_list_path);
+				goto out;
+			}
+		} else {
+			// process files from command arguments
+			for (c = optind; c < argc; c++) {
+				libtar_list_add(l, argv[c]);
+			}
+		}
+
+		ret = create(tarfile, rootdir, l);
+		libtar_list_free(l, NULL);
+		if (file_list_count != 0)
+			free_string_array(file_list_entries, file_list_count);
 		break;
-	case MODE_LIST:
-		return_code = list(argv[optind]);
+	}
+	case MODE_LIST: {
+		if (tarfile == NULL)
+			tarfile = strdup("-");
+		ret = list(tarfile);
 		break;
+	}
 	default:
 		break;
 	}
 
+out:
 	free(rootdir);
+	free(tarfile);
+	free(file_list_path);
 	while (exclusions) {
 		free(exclude_list[--exclusions]);
 	}
-	return return_code;
+
+	return ret;
 }
-
-
