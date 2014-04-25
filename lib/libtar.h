@@ -85,7 +85,7 @@ tartype_t;
 typedef struct
 {
 	tartype_t *type;
-	char *pathname;
+	const char *pathname;
 	long fd;
 	int oflags;
 	int options;
@@ -103,6 +103,7 @@ TAR;
 #define TAR_CHECK_VERSION	32	/* check version in file header */
 #define TAR_IGNORE_CRC		64	/* ignore CRC in file header */
 #define TAR_STORE_SELINUX	128	/* store selinux context */
+#define TAR_USE_NUMERIC_ID  256 /* favor numeric owner over names: --numeric-owner */
 
 /* this is obsolete - it's here for backwards-compatibility only */
 #define TAR_IGNORE_MAGIC	0
@@ -179,8 +180,8 @@ int th_write(TAR *t);
 #define TH_ISDIR(t)	((t)->th_buf.typeflag == DIRTYPE \
 			 || S_ISDIR((mode_t)oct_to_int((t)->th_buf.mode)) \
 			 || ((t)->th_buf.typeflag == AREGTYPE \
-			     && strlen((t)->th_buf.name) \
-			     && ((t)->th_buf.name[strlen((t)->th_buf.name) - 1] == '/')))
+			     && strnlen((t)->th_buf.name, T_NAMELEN) \
+			     && ((t)->th_buf.name[strnlen((t)->th_buf.name, T_NAMELEN) - 1] == '/')))
 #define TH_ISFIFO(t)	((t)->th_buf.typeflag == FIFOTYPE \
 			 || S_ISFIFO((mode_t)oct_to_int((t)->th_buf.mode)))
 #define TH_ISLONGNAME(t)	((t)->th_buf.typeflag == GNU_LONGNAME_TYPE)
