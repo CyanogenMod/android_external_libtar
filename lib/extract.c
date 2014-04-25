@@ -28,6 +28,9 @@
 # include <unistd.h>
 #endif
 
+#ifdef HAVE_SELINUX
+# include <selinux/selinux.h>
+#endif
 
 struct linkname
 {
@@ -151,7 +154,7 @@ tar_extract_file(TAR *t, const char *realname)
 #ifdef DEBUG
 		printf("    Restoring SELinux context %s to file %s\n", t->th_buf.selinux_context, realname);
 #endif
-		if(setfilecon(realname, t->th_buf.selinux_context) < 0)
+		if(lsetfilecon(realname, t->th_buf.selinux_context) < 0)
 			fprintf(stderr, "Failed to restore SELinux context %s!\n", strerror(errno));
 	}
 #endif
