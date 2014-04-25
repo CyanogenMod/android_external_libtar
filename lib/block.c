@@ -17,6 +17,7 @@
 #ifdef STDC_HEADERS
 # include <string.h>
 # include <stdlib.h>
+# include <stdio.h>
 #endif
 
 
@@ -55,18 +56,16 @@ th_read_internal(TAR *t)
 		if (BIT_ISSET(t->options, TAR_CHECK_MAGIC)
 		    && strncmp(t->th_buf.magic, TMAGIC, TMAGLEN - 1) != 0)
 		{
-#ifdef DEBUG
-			puts("!!! unknown magic value in tar header");
-#endif
+			printf("!!! unknown magic value in tar header\n");
+            printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 			return -2;
 		}
 
 		if (BIT_ISSET(t->options, TAR_CHECK_VERSION)
 		    && strncmp(t->th_buf.version, TVERSION, TVERSLEN) != 0)
 		{
-#ifdef DEBUG
-			puts("!!! unknown version value in tar header");
-#endif
+			printf("!!! unknown version value in tar header\n");
+            printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 			return -2;
 		}
 
@@ -74,9 +73,8 @@ th_read_internal(TAR *t)
 		if (!BIT_ISSET(t->options, TAR_IGNORE_CRC)
 		    && !th_crc_ok(t))
 		{
-#ifdef DEBUG
-			puts("!!! tar header checksum error");
-#endif
+			printf("!!! tar header checksum error\n");
+            printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 			return -2;
 		}
 
@@ -265,7 +263,7 @@ th_read(TAR *t)
 #endif
 
 #if 0
-	/*
+	/* DEAD code !!
 	** work-around for old archive files with broken typeflag fields
 	** NOTE: I fixed this in the TH_IS*() macros instead
 	*/
@@ -274,7 +272,7 @@ th_read(TAR *t)
 	** (directories are signified with a trailing '/')
 	*/
 	if (t->th_buf.typeflag == AREGTYPE
-	    && t->th_buf.name[strlen(t->th_buf.name) - 1] == '/')
+	    && t->th_buf.name[strnlen(t->th_buf.name, T_NAMELEN) - 1] == '/')
 		t->th_buf.typeflag = DIRTYPE;
 
 	/*
