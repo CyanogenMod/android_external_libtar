@@ -28,6 +28,9 @@
 # include <unistd.h>
 #endif
 
+#ifdef HAVE_SELINUX
+# include <selinux/selinux.h>
+#endif
 
 struct linkname
 {
@@ -151,7 +154,7 @@ tar_extract_file(TAR *t, const char *realname)
 #ifdef DEBUG
 		printf("    Restoring SELinux context %s to file %s\n", t->th_buf.selinux_context, realname);
 #endif
-		if(setfilecon(realname, t->th_buf.selinux_context) < 0)
+		if(lsetfilecon(realname, t->th_buf.selinux_context) < 0)
 			fprintf(stderr, "Failed to restore SELinux context %s!\n", strerror(errno));
 	}
 #endif
@@ -178,10 +181,7 @@ tar_extract_file(TAR *t, const char *realname)
 int
 tar_extract_regfile(TAR *t, const char *realname)
 {
-	mode_t mode;
 	size_t size;
-	uid_t uid;
-	gid_t gid;
 	int fdout;
 	int i, k;
 	char buf[T_BLOCKSIZE];
@@ -201,10 +201,7 @@ tar_extract_regfile(TAR *t, const char *realname)
 
 	pn = th_get_pathname(t);
 	filename = (realname ? realname : pn);
-	mode = th_get_mode(t);
 	size = th_get_size(t);
-	uid = th_get_uid(t);
-	gid = th_get_gid(t);
 
 	if (mkdirhier(dirname(filename)) == -1)
 	{
@@ -213,8 +210,8 @@ tar_extract_regfile(TAR *t, const char *realname)
 	}
 
 #ifdef DEBUG
-	printf("  ==> extracting: %s (mode %04o, uid %d, gid %d, %d bytes)\n",
-	       filename, mode, uid, gid, size);
+	printf("  ==> extracting: %s (file size %d bytes)\n",
+			filename, size);
 #endif
 	fdout = open(filename, O_WRONLY | O_CREAT | O_TRUNC
 #ifdef O_BINARY
@@ -229,26 +226,6 @@ tar_extract_regfile(TAR *t, const char *realname)
 		free (pn);
 		return -1;
 	}
-
-#if 0
-	/* change the owner.  (will only work if run as root) */
-	if (fchown(fdout, uid, gid) == -1 && errno != EPERM)
-	{
-#ifdef DEBUG
-		perror("fchown()");
-#endif
-		return -1;
-	}
-
-	/* make sure the mode isn't inheritted from a file we're overwriting */
-	if (fchmod(fdout, mode & 07777) == -1)
-	{
-#ifdef DEBUG
-		perror("fchmod()");
-#endif
-		return -1;
-	}
-#endif
 
 	/* extract the file */
 	for (i = size; i > 0; i -= T_BLOCKSIZE)
@@ -387,8 +364,10 @@ tar_extract_symlink(TAR *t, const char *realname)
 		return -1;
 	}
 
-	if (unlink(filename) == -1 && errno != ENOENT)
+	if (unlink(filename) == -1 && errno != ENOENT) {
+		free (pn);
 		return -1;
+	}
 
 #ifdef DEBUG
 	printf("  ==> extracting: %s (symlink to %s)\n",
