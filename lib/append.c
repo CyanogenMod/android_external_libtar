@@ -106,7 +106,7 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		}
 
 		security_context_t selinux_context = NULL;
-		if(getfilecon(realname, &selinux_context) >= 0)
+		if(lgetfilecon(realname, &selinux_context) >= 0)
 		{
 			t->th_buf.selinux_context = strdup(selinux_context);
 			freecon(selinux_context);
@@ -188,8 +188,12 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 
 	/* print file info */
 	if (t->options & TAR_VERBOSE)
+	{
 		//th_print_long_ls(t);
-		printf("%s\n", th_get_pathname(t));
+		char *f = th_get_pathname(t);
+		printf("%s\n", f);
+		free(f);
+	}
 
 
 #ifdef DEBUG
