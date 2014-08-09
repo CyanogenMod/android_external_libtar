@@ -15,3 +15,8 @@
 
 #include <libtar.h>
 
+#ifdef DEBUG
+#define DBGMSG(args...) fprintf(stderr, args)
+#else
+#define DBGMSG(args...)
+#endif

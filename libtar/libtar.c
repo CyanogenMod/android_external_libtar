@@ -48,7 +48,7 @@ int use_gnu = 0;
 void
 segv_handler(int sig)
 {
-	puts("OOPS!  Caught SIGSEGV, bailing out...");
+	fputs("OOPS!  Caught SIGSEGV, bailing out...", stderr);
 	fflush(stdout);
 	fflush(stderr);
 }
@@ -123,7 +123,7 @@ tar_append_tree_with_exceptions(TAR *t, char *realdir, char *savedir)
 	struct stat s;
 
 #ifdef DEBUG
-	printf("==> tar_append_tree(0x%lx, \"%s\", \"%s\")\n",
+	fprintf(stderr, "==> tar_append_tree(0x%lx, \"%s\", \"%s\")\n",
 	       t, realdir, (savedir ? savedir : "[NULL]"));
 #endif
 
@@ -131,7 +131,7 @@ tar_append_tree_with_exceptions(TAR *t, char *realdir, char *savedir)
 		return -1;
 
 #ifdef DEBUG
-	puts("    tar_append_tree(): done with tar_append_file()...");
+	fputs("    tar_append_tree(): done with tar_append_file()...", stderr);
 #endif
 
 	dp = opendir(realdir);
@@ -340,7 +340,7 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 	int i;
 
 #ifdef DEBUG
-	printf("==> tar_extract_all(TAR *t, \"%s\")\n",
+	fprintf(stderr, "==> tar_extract_all(TAR *t, \"%s\")\n",
 			(prefix ? prefix : "(null)"));
 #endif
 
@@ -348,7 +348,7 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 	{
 		int skip = 0;
 #ifdef DEBUG
-		puts("    tar_extract_all(): calling th_get_pathname()");
+		fputs("    tar_extract_all(): calling th_get_pathname()", stderr);
 #endif
 		filename = th_get_pathname(t);
 		if (prefix != NULL)
@@ -376,7 +376,7 @@ tar_extract_all_with_exceptions(TAR *t, char *prefix)
 			printf("%s\n", th_get_pathname(t));
 		//th_print_long_ls(t);
 #ifdef DEBUG
-		printf("    tar_extract_all(): calling tar_extract_file(t, "
+		fprintf(stderr, "    tar_extract_all(): calling tar_extract_file(t, "
 				"\"%s\")\n", buf);
 #endif
 		if (tar_extract_file(t, buf) != 0)
@@ -396,7 +396,7 @@ extract(char *tarfile, char *rootdir)
 	TAR *t;
 
 #ifdef DEBUG
-	puts("opening tarfile...");
+	fputs("opening tarfile...", stderr);
 #endif
 	if (strnlen(tarfile,2) == 1 && !strncmp(tarfile,"-",1)) {
 		if (tar_fdopen(&t, fileno(stdin), tarfile,
@@ -431,7 +431,7 @@ extract(char *tarfile, char *rootdir)
 	}
 
 #ifdef DEBUG
-	puts("extracting tarfile...");
+	fputs("extracting tarfile...", stderr);
 #endif
 	if (tar_extract_all_with_exceptions(t, rootdir) != 0)
 	{
@@ -442,7 +442,7 @@ extract(char *tarfile, char *rootdir)
 	}
 
 #ifdef DEBUG
-	puts("closing tarfile...");
+	fputs("closing tarfile...", stderr);
 #endif
 	if (tar_close(t) != 0)
 	{

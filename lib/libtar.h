@@ -262,6 +262,9 @@ int tar_extract_file_contents(TAR *t, void *buf, size_t *lenp);
 
 /* print the tar header */
 void th_print(TAR *t);
+#ifdef DEBUG
+void th_debug(TAR* t);
+#endif
 
 /* print "ls -l"-like output for the file described by th */
 void th_print_long_ls(TAR *t);
