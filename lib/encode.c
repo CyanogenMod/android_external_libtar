@@ -75,9 +75,7 @@ th_set_path(TAR *t, const char *pathname)
 	char *tmp;
 	size_t pathname_len = strlen(pathname);
 
-#ifdef DEBUG
-	printf("in th_set_path(th, pathname=\"%s\")\n", pathname);
-#endif
+	DBGMSG("in th_set_path(th, pathname=\"%s\")\n", pathname);
 
 	if (t->th_buf.gnu_longname != NULL)
 		free(t->th_buf.gnu_longname);
@@ -127,9 +125,7 @@ th_set_path(TAR *t, const char *pathname)
 		snprintf(t->th_buf.name, T_NAMELEN, "%s%s", pathname, suffix);
 	}
 
-#ifdef DEBUG
-	puts("returning from th_set_path()...");
-#endif
+	DBGMSG("returning from th_set_path()...\n");
 }
 
 
@@ -137,9 +133,7 @@ th_set_path(TAR *t, const char *pathname)
 void
 th_set_link(TAR *t, const char *linkname)
 {
-#ifdef DEBUG
-	printf("==> th_set_link(th, linkname=\"%s\")\n", linkname);
-#endif
+	DBGMSG("==> th_set_link(th, linkname=\"%s\")\n", linkname);
 
 	if (strlen(linkname) >= T_NAMELEN && (t->options & TAR_GNU))
 	{
@@ -168,10 +162,8 @@ th_set_link(TAR *t, const char *linkname)
 void
 th_set_device(TAR *t, dev_t device)
 {
-#ifdef DEBUG
-	printf("th_set_device(): major = %d, minor = %d\n",
+	DBGMSG("th_set_device(): major = %d, minor = %d\n",
 	       major(device), minor(device));
-#endif
 	int_to_oct(major(device), t->th_buf.devmajor, 8);
 	int_to_oct(minor(device), t->th_buf.devminor, 8);
 }
