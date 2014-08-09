@@ -113,9 +113,7 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		}
 		else
 		{
-#ifdef DEBUG
 			perror("Failed to get selinux context");
-#endif
 		}
 	}
 #endif

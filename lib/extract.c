@@ -141,12 +141,16 @@ tar_extract_file(TAR *t, const char *realname)
 	else /* if (TH_ISREG(t)) */
 		i = tar_extract_regfile(t, realname);
 
-	if (i != 0)
+	if (i != 0) {
+		fprintf(stderr, "Failed restore of file i: %s\n", realname);
 		return i;
+	}
 
 	i = tar_set_file_perms(t, realname);
-	if (i != 0)
+	if (i != 0) {
+		fprintf(stderr, "Failed Setting perms: %d\n", i);
 		return i;
+	}
 
 #ifdef HAVE_SELINUX
 	if((t->options & TAR_STORE_SELINUX) && t->th_buf.selinux_context != NULL)
