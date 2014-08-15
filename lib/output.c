@@ -30,35 +30,49 @@
 #endif
 
 
-void
-th_print(TAR *t)
+static void
+_th_print(TAR *t, FILE* f)
 {
-	puts("\nPrinting tar header:");
-	printf("  name     = \"%.100s\"\n", t->th_buf.name);
-	printf("  mode     = \"%.8s\"\n", t->th_buf.mode);
-	printf("  uid      = \"%.8s\"\n", t->th_buf.uid);
-	printf("  gid      = \"%.8s\"\n", t->th_buf.gid);
-	printf("  size     = \"%.12s\"\n", t->th_buf.size);
-	printf("  mtime    = \"%.12s\"\n", t->th_buf.mtime);
-	printf("  chksum   = \"%.8s\"\n", t->th_buf.chksum);
-	printf("  typeflag = \'%c\'\n", t->th_buf.typeflag);
-	printf("  linkname = \"%.100s\"\n", t->th_buf.linkname);
-	printf("  magic    = \"%.6s\"\n", t->th_buf.magic);
-	/*printf("  version  = \"%.2s\"\n", t->th_buf.version); */
-	printf("  version[0] = \'%c\',version[1] = \'%c\'\n",
+	fputs("\nPrinting tar header:", f);
+	fprintf(f, "  name     = \"%.100s\"\n", t->th_buf.name);
+	fprintf(f, "  mode     = \"%.8s\"\n", t->th_buf.mode);
+	fprintf(f, "  uid      = \"%.8s\"\n", t->th_buf.uid);
+	fprintf(f, "  gid      = \"%.8s\"\n", t->th_buf.gid);
+	fprintf(f, "  size     = \"%.12s\"\n", t->th_buf.size);
+	fprintf(f, "  mtime    = \"%.12s\"\n", t->th_buf.mtime);
+	fprintf(f, "  chksum   = \"%.8s\"\n", t->th_buf.chksum);
+	fprintf(f, "  typeflag = \'%c\'\n", t->th_buf.typeflag);
+	fprintf(f, "  linkname = \"%.100s\"\n", t->th_buf.linkname);
+	fprintf(f, "  magic    = \"%.6s\"\n", t->th_buf.magic);
+	/*fprintf(f, "  version  = \"%.2s\"\n", t->th_buf.version); */
+	fprintf(f, "  version[0] = \'%c\',version[1] = \'%c\'\n",
 	       t->th_buf.version[0], t->th_buf.version[1]);
-	printf("  uname    = \"%.32s\"\n", t->th_buf.uname);
-	printf("  gname    = \"%.32s\"\n", t->th_buf.gname);
-	printf("  devmajor = \"%.8s\"\n", t->th_buf.devmajor);
-	printf("  devminor = \"%.8s\"\n", t->th_buf.devminor);
-	printf("  prefix   = \"%.155s\"\n", t->th_buf.prefix);
-	printf("  padding  = \"%.12s\"\n", t->th_buf.padding);
-	printf("  gnu_longname = \"%s\"\n",
+	fprintf(f, "  uname    = \"%.32s\"\n", t->th_buf.uname);
+	fprintf(f, "  gname    = \"%.32s\"\n", t->th_buf.gname);
+	fprintf(f, "  devmajor = \"%.8s\"\n", t->th_buf.devmajor);
+	fprintf(f, "  devminor = \"%.8s\"\n", t->th_buf.devminor);
+	fprintf(f, "  prefix   = \"%.155s\"\n", t->th_buf.prefix);
+	fprintf(f, "  padding  = \"%.12s\"\n", t->th_buf.padding);
+	fprintf(f, "  gnu_longname = \"%s\"\n",
 	       (t->th_buf.gnu_longname ? t->th_buf.gnu_longname : "[NULL]"));
-	printf("  gnu_longlink = \"%s\"\n",
+	fprintf(f, "  gnu_longlink = \"%s\"\n",
 	       (t->th_buf.gnu_longlink ? t->th_buf.gnu_longlink : "[NULL]"));
 }
 
+
+void
+th_print(TAR *t)
+{
+	_th_print(t, stdout);
+}
+
+#ifdef DEBUG
+void
+th_debug(TAR* t)
+{
+	_th_print(t, stderr);
+}
+#endif
 
 void
 th_print_long_ls(TAR *t)

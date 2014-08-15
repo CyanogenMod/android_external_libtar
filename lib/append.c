@@ -69,31 +69,23 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 	tar_ino_t *ti = NULL;
 	char path[MAXPATHLEN];
 
-#ifdef DEBUG
-	printf("==> tar_append_file(TAR=0x%lx (\"%s\"), realname=\"%s\", "
+	DBGMSG("==> tar_append_file(TAR=0x%p (\"%s\"), realname=\"%s\", "
 	       "savename=\"%s\")\n", t, t->pathname, realname,
 	       (savename ? savename : "[NULL]"));
-#endif
 
 	if (lstat(realname, &s) != 0)
 	{
-#ifdef DEBUG
-		perror("lstat()");
-#endif
+		DBGERR("lstat()");
 		return -1;
 	}
 
 	/* set header block */
-#ifdef DEBUG
-	puts("    tar_append_file(): setting header block...");
-#endif
+	DBGMSG("    tar_append_file(): setting header block...\n");
 	memset(&(t->th_buf), 0, sizeof(struct tar_header));
 	th_set_from_stat(t, &s);
 
 	/* set the header path */
-#ifdef DEBUG
-	puts("    tar_append_file(): setting header path...");
-#endif
+	DBGMSG("    tar_append_file(): setting header path...\n");
 	th_set_path(t, (savename ? savename : realname));
 
 #ifdef HAVE_SELINUX
@@ -114,27 +106,21 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		}
 		else
 		{
-#ifdef DEBUG
-			perror("Failed to get selinux context");
-#endif
+			DBGERR("Failed to get selinux context");
 		}
 	}
 #endif
 
 	/* check if it's a hardlink */
-#ifdef DEBUG
-	puts("    tar_append_file(): checking inode cache for hardlink...");
-#endif
+	DBGMSG("    tar_append_file(): checking inode cache for hardlink...\n");
 	libtar_hashptr_reset(&hp);
 	if (libtar_hash_getkey(t->h, &hp, &(s.st_dev),
 			       (libtar_matchfunc_t)dev_match) != 0)
 		td = (tar_dev_t *)libtar_hashptr_data(&hp);
 	else
 	{
-#ifdef DEBUG
-		printf("+++ adding hash for device (0x%lx, 0x%lx)...\n",
+		DBGMSG("+++ adding hash for device (0x%x, 0x%x)...\n",
 		       major(s.st_dev), minor(s.st_dev));
-#endif
 		td = (tar_dev_t *)calloc(1, sizeof(tar_dev_t));
 		td->td_dev = s.st_dev;
 		td->td_h = libtar_hash_new(256, (libtar_hashfunc_t)ino_hash);
@@ -148,20 +134,16 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 			       (libtar_matchfunc_t)ino_match) != 0)
 	{
 		ti = (tar_ino_t *)libtar_hashptr_data(&hp);
-#ifdef DEBUG
-		printf("    tar_append_file(): encoding hard link \"%s\" "
+		DBGMSG("    tar_append_file(): encoding hard link \"%s\" "
 		       "to \"%s\"...\n", realname, ti->ti_name);
-#endif
 		t->th_buf.typeflag = LNKTYPE;
 		th_set_link(t, ti->ti_name);
 	}
 	else
 	{
-#ifdef DEBUG
-		printf("+++ adding entry: device (0x%lx,0x%lx), inode %ld "
+		DBGMSG("+++ adding entry: device (0x%x,0x%x), inode %llu "
 		       "(\"%s\")...\n", major(s.st_dev), minor(s.st_dev),
 		       s.st_ino, realname);
-#endif
 		ti = (tar_ino_t *)calloc(1, sizeof(tar_ino_t));
 		if (ti == NULL)
 			return -1;
@@ -180,10 +162,8 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		if (i >= MAXPATHLEN)
 			i = MAXPATHLEN - 1;
 		path[i] = '\0';
-#ifdef DEBUG
-		printf("    tar_append_file(): encoding symlink \"%s\" -> "
+		DBGMSG("    tar_append_file(): encoding symlink \"%s\" -> "
 		       "\"%s\"...\n", realname, path);
-#endif
 		th_set_link(t, path);
 	}
 
@@ -197,20 +177,14 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 	}
 
 
-#ifdef DEBUG
-	puts("    tar_append_file(): writing header");
-#endif
+	DBGMSG("    tar_append_file(): writing header\n");
 	/* write header */
 	if (th_write(t) != 0)
 	{
-#ifdef DEBUG
-		printf("t->fd = %d\n", t->fd);
-#endif
+		DBGMSG("t->fd = %ld\n", t->fd);
 		return -1;
 	}
-#ifdef DEBUG
-	puts("    tar_append_file(): back from th_write()");
-#endif
+	DBGMSG("    tar_append_file(): back from th_write()\n");
 
 	/* if it's a regular file, write the contents as well */
 	if (TH_ISREG(t) && tar_append_regfile(t, realname) != 0)
@@ -255,9 +229,7 @@ tar_append_regfile(TAR *t, const char *realname)
 	filefd = open(realname, O_RDONLY);
 	if (filefd == -1)
 	{
-#ifdef DEBUG
-		perror("open()");
-#endif
+		DBGERR("open()");
 		return -1;
 	}
 
@@ -310,9 +282,7 @@ tar_append_file_contents(TAR *t, const char *savename, mode_t mode,
 	/* write header */
 	if (th_write(t) != 0)
 	{
-#ifdef DEBUG
-		printf("t->fd = %d\n", t->fd);
-#endif
+		DBGMSG("t->fd = %ld\n", t->fd);
 		return -1;
 	}
 

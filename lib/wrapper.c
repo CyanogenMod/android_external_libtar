@@ -68,16 +68,12 @@ tar_extract_all(TAR *t, char *prefix)
 	char buf[MAXPATHLEN];
 	int i;
 
-#ifdef DEBUG
-	printf("==> tar_extract_all(TAR *t, \"%s\")\n",
+	DBGMSG("==> tar_extract_all(TAR *t, \"%s\")\n",
 	       (prefix ? prefix : "(null)"));
-#endif
 
 	while ((i = th_read(t)) == 0)
 	{
-#ifdef DEBUG
-		puts("    tar_extract_all(): calling th_get_pathname()");
-#endif
+		DBGMSG("    tar_extract_all(): calling th_get_pathname()\n");
 		filename = th_get_pathname(t);
 		if (t->options & TAR_VERBOSE)
 			th_print_long_ls(t);
@@ -85,10 +81,8 @@ tar_extract_all(TAR *t, char *prefix)
 			snprintf(buf, sizeof(buf), "%s/%s", prefix, filename);
 		else
 			strlcpy(buf, filename, sizeof(buf));
-#ifdef DEBUG
-		printf("    tar_extract_all(): calling tar_extract_file(t, "
+		DBGMSG("    tar_extract_all(): calling tar_extract_file(t, "
 		       "\"%s\")\n", buf);
-#endif
 		if (tar_extract_file(t, buf) != 0)
 		{
 			free (filename);
@@ -110,17 +104,13 @@ tar_append_tree(TAR *t, char *realdir, char *savedir)
 	DIR *dp;
 	struct stat s;
 
-#ifdef DEBUG
-	printf("==> tar_append_tree(0x%lx, \"%s\", \"%s\")\n",
+	DBGMSG("==> tar_append_tree(0x%p, \"%s\", \"%s\")\n",
 	       t, realdir, (savedir ? savedir : "[NULL]"));
-#endif
 
 	if (tar_append_file(t, realdir, savedir) != 0)
 		return -1;
 
-#ifdef DEBUG
-	puts("    tar_append_tree(): done with tar_append_file()...");
-#endif
+	DBGMSG("    tar_append_tree(): done with tar_append_file()...\n");
 
 	dp = opendir(realdir);
 	if (dp == NULL)

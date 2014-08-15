@@ -15,3 +15,10 @@
 
 #include <libtar.h>
 
+#ifdef DEBUG
+#define DBGMSG(args...) fprintf(stderr, args)
+#define DBGERR(s) perror(s)
+#else
+#define DBGMSG(args...)
+#define DBGERR(s)
+#endif

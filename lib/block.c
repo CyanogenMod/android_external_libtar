@@ -17,6 +17,7 @@
 #ifdef STDC_HEADERS
 # include <string.h>
 # include <stdlib.h>
+# include <stdio.h>
 #endif
 
 
@@ -34,9 +35,7 @@ th_read_internal(TAR *t)
 	int i;
 	int num_zero_blocks = 0;
 
-#ifdef DEBUG
-	printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
-#endif
+	DBGMSG("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 
 	while ((i = tar_block_read(t, &(t->th_buf))) == T_BLOCKSIZE)
 	{
@@ -55,18 +54,14 @@ th_read_internal(TAR *t)
 		if (BIT_ISSET(t->options, TAR_CHECK_MAGIC)
 		    && strncmp(t->th_buf.magic, TMAGIC, TMAGLEN - 1) != 0)
 		{
-#ifdef DEBUG
-			puts("!!! unknown magic value in tar header");
-#endif
+			DBGMSG("!!! unknown magic value in tar header");
 			return -2;
 		}
 
 		if (BIT_ISSET(t->options, TAR_CHECK_VERSION)
 		    && strncmp(t->th_buf.version, TVERSION, TVERSLEN) != 0)
 		{
-#ifdef DEBUG
-			puts("!!! unknown version value in tar header");
-#endif
+			DBGMSG("!!! unknown version value in tar header");
 			return -2;
 		}
 
@@ -74,18 +69,14 @@ th_read_internal(TAR *t)
 		if (!BIT_ISSET(t->options, TAR_IGNORE_CRC)
 		    && !th_crc_ok(t))
 		{
-#ifdef DEBUG
-			puts("!!! tar header checksum error");
-#endif
+			DBGMSG("!!! tar header checksum error");
 			return -2;
 		}
 
 		break;
 	}
 
-#ifdef DEBUG
-	printf("<== th_read_internal(): returning %d\n", i);
-#endif
+	DBGMSG("<== th_read_internal(): returning %d\n", i);
 	return i;
 }
 
@@ -98,9 +89,7 @@ th_read(TAR *t)
 	size_t sz;
 	char *ptr;
 
-#ifdef DEBUG
-	printf("==> th_read(t=0x%lx)\n", t);
-#endif
+	DBGMSG("==> th_read(t=0x%p)\n", t);
 
 	if (t->th_buf.gnu_longname != NULL)
 		free(t->th_buf.gnu_longname);
@@ -128,10 +117,8 @@ th_read(TAR *t)
 	{
 		sz = th_get_size(t);
 		j = (sz / T_BLOCKSIZE) + (sz % T_BLOCKSIZE ? 1 : 0);
-#ifdef DEBUG
-		printf("    th_read(): GNU long linkname detected "
-		       "(%ld bytes, %d blocks)\n", sz, j);
-#endif
+		DBGMSG("    th_read(): GNU long linkname detected "
+		       "(%u bytes, %d blocks)\n", sz, j);
 		t->th_buf.gnu_longlink = (char *)malloc(j * T_BLOCKSIZE);
 		if (t->th_buf.gnu_longlink == NULL)
 			return -1;
@@ -139,10 +126,8 @@ th_read(TAR *t)
 		for (ptr = t->th_buf.gnu_longlink; j > 0;
 		     j--, ptr += T_BLOCKSIZE)
 		{
-#ifdef DEBUG
-			printf("    th_read(): reading long linkname "
-			       "(%d blocks left, ptr == %ld)\n", j, ptr);
-#endif
+			DBGMSG("    th_read(): reading long linkname "
+			       "(%u blocks left, ptr == 0x%p)\n", j, ptr);
 			i = tar_block_read(t, ptr);
 			if (i != T_BLOCKSIZE)
 			{
@@ -150,14 +135,10 @@ th_read(TAR *t)
 					errno = EINVAL;
 				return -1;
 			}
-#ifdef DEBUG
-			printf("    th_read(): read block == \"%s\"\n", ptr);
-#endif
+			DBGMSG("    th_read(): read block == \"%s\"\n", ptr);
 		}
-#ifdef DEBUG
-		printf("    th_read(): t->th_buf.gnu_longlink == \"%s\"\n",
+		DBGMSG("    th_read(): t->th_buf.gnu_longlink == \"%s\"\n",
 		       t->th_buf.gnu_longlink);
-#endif
 
 		i = th_read_internal(t);
 		if (i != T_BLOCKSIZE)
@@ -173,10 +154,8 @@ th_read(TAR *t)
 	{
 		sz = th_get_size(t);
 		j = (sz / T_BLOCKSIZE) + (sz % T_BLOCKSIZE ? 1 : 0);
-#ifdef DEBUG
-		printf("    th_read(): GNU long filename detected "
-		       "(%ld bytes, %d blocks)\n", sz, j);
-#endif
+		DBGMSG("    th_read(): GNU long filename detected "
+		       "(%u bytes, %d blocks)\n", sz, j);
 		t->th_buf.gnu_longname = (char *)malloc(j * T_BLOCKSIZE);
 		if (t->th_buf.gnu_longname == NULL)
 			return -1;
@@ -184,10 +163,8 @@ th_read(TAR *t)
 		for (ptr = t->th_buf.gnu_longname; j > 0;
 		     j--, ptr += T_BLOCKSIZE)
 		{
-#ifdef DEBUG
-			printf("    th_read(): reading long filename "
-			       "(%d blocks left, ptr == %ld)\n", j, ptr);
-#endif
+			DBGMSG("    th_read(): reading long filename "
+			       "(%d blocks left, ptr == 0x%p)\n", j, ptr);
 			i = tar_block_read(t, ptr);
 			if (i != T_BLOCKSIZE)
 			{
@@ -195,14 +172,10 @@ th_read(TAR *t)
 					errno = EINVAL;
 				return -1;
 			}
-#ifdef DEBUG
-			printf("    th_read(): read block == \"%s\"\n", ptr);
-#endif
+			DBGMSG("    th_read(): read block == \"%s\"\n", ptr);
 		}
-#ifdef DEBUG
-		printf("    th_read(): t->th_buf.gnu_longname == \"%s\"\n",
+		DBGMSG("    th_read(): t->th_buf.gnu_longname == \"%s\"\n",
 		       t->th_buf.gnu_longname);
-#endif
 
 		i = th_read_internal(t);
 		if (i != T_BLOCKSIZE)
@@ -220,9 +193,7 @@ th_read(TAR *t)
 
 		if(sz >= T_BLOCKSIZE) // Not supported
 		{
-#ifdef DEBUG
-			printf("    th_read(): Extended header is too long!\n");
-#endif
+			DBGMSG("    th_read(): Extended header is too long!\n");
 		}
 		else
 		{
@@ -247,9 +218,7 @@ th_read(TAR *t)
 				if(end)
 				{
 					t->th_buf.selinux_context = strndup(start, end-start);
-#ifdef DEBUG
-					printf("    th_read(): SELinux context xattr detected: %s\n", t->th_buf.selinux_context);
-#endif
+					DBGMSG("    th_read(): SELinux context xattr detected: %s\n", t->th_buf.selinux_context);
 				}
 			}
 		}
@@ -278,17 +247,13 @@ th_write(TAR *t)
 	char *ptr;
 	char buf[T_BLOCKSIZE];
 
-#ifdef DEBUG
-	printf("==> th_write(TAR=\"%s\")\n", t->pathname);
-	th_print(t);
-#endif
+	DBGMSG("==> th_write(TAR=\"%s\")\n", t->pathname);
+	th_debug(t);
 
 	if ((t->options & TAR_GNU) && t->th_buf.gnu_longlink != NULL)
 	{
-#ifdef DEBUG
-		printf("th_write(): using gnu_longlink (\"%s\")\n",
+		DBGMSG("th_write(): using gnu_longlink (\"%s\")\n",
 		       t->th_buf.gnu_longlink);
-#endif
 		/* save old size and type */
 		type2 = t->th_buf.typeflag;
 		sz2 = th_get_size(t);
@@ -336,10 +301,8 @@ th_write(TAR *t)
 
 	if ((t->options & TAR_GNU) && t->th_buf.gnu_longname != NULL)
 	{
-#ifdef DEBUG
-		printf("th_write(): using gnu_longname (\"%s\")\n",
+		DBGMSG("th_write(): using gnu_longname (\"%s\")\n",
 		       t->th_buf.gnu_longname);
-#endif
 		/* save old size and type */
 		type2 = t->th_buf.typeflag;
 		sz2 = th_get_size(t);
@@ -388,10 +351,8 @@ th_write(TAR *t)
 #ifdef HAVE_SELINUX
 	if((t->options & TAR_STORE_SELINUX) && t->th_buf.selinux_context != NULL)
 	{
-#ifdef DEBUG
-		printf("th_write(): using selinux_context (\"%s\")\n",
+		DBGMSG("th_write(): using selinux_context (\"%s\")\n",
 		       t->th_buf.selinux_context);
-#endif
 		/* save old size and type */
 		type2 = t->th_buf.typeflag;
 		sz2 = th_get_size(t);
@@ -440,10 +401,8 @@ th_write(TAR *t)
 
 	th_finish(t);
 
-#ifdef DEBUG
 	/* print tar header */
-	th_print(t);
-#endif
+	th_debug(t);
 
 	i = tar_block_write(t, &(t->th_buf));
 	if (i != T_BLOCKSIZE)
@@ -453,9 +412,7 @@ th_write(TAR *t)
 		return -1;
 	}
 
-#ifdef DEBUG
-	puts("th_write(): returning 0");
-#endif
+	DBGMSG("th_write(): returning 0\n");
 	return 0;
 }
 
