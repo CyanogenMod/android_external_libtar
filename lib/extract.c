@@ -32,6 +32,10 @@
 # include <selinux/selinux.h>
 #endif
 
+#ifdef __linux__
+#include <linux/fs.h>
+#endif
+
 struct linkname
 {
 	char ln_save[MAXPATHLEN];
@@ -43,12 +47,13 @@ typedef struct linkname linkname_t;
 static int
 tar_set_file_perms(TAR *t, const char *realname)
 {
-	mode_t mode;
+	unsigned int mode;
 	uid_t uid;
 	gid_t gid;
 	struct utimbuf ut;
 	const char *filename;
 	char *pn;
+	int compress;
 
 	pn = th_get_pathname(t);
 	filename = (realname ? realname : pn);
@@ -56,6 +61,9 @@ tar_set_file_perms(TAR *t, const char *realname)
 	uid = th_get_uid(t);
 	gid = th_get_gid(t);
 	ut.modtime = ut.actime = th_get_mtime(t);
+
+	compress = (mode & TH_MODE_COMPRESSED);
+	mode &= ~TH_MODE_COMPRESSED;
 
 	/* change owner/group */
 	if (geteuid() == 0)
@@ -97,6 +105,22 @@ tar_set_file_perms(TAR *t, const char *realname)
 		free (pn);
 		return -1;
 	}
+
+#ifdef FS_COMPR_FL
+	if (compress)
+	{
+		int fd;
+		long flags;
+		fd = open(filename, O_RDWR);
+		if (fd >= 0)
+		{
+			ioctl(fd, FS_IOC_GETFLAGS, &flags);
+			flags |= FS_COMPR_FL;
+			ioctl(fd, FS_IOC_SETFLAGS, &flags);
+			close(fd);
+		}
+	}
+#endif
 
 	free (pn);
 	return 0;

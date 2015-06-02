@@ -34,6 +34,10 @@
 # include <selinux/selinux.h>
 #endif
 
+#ifdef __linux__
+#include <linux/fs.h>
+#endif
+
 struct tar_dev
 {
 	dev_t td_dev;
@@ -82,6 +86,25 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 #endif
 		return -1;
 	}
+
+#ifdef FS_COMPR_FL
+	{
+		int fd;
+		long flags;
+		fd = open(realname, O_RDONLY);
+		if (fd >= 0)
+		{
+			if (ioctl(fd, FS_IOC_GETFLAGS, &flags) == 0)
+			{
+				if (flags & FS_COMPR_FL)
+				{
+					s.st_mode |= TH_MODE_COMPRESSED;
+				}
+			}
+			close(fd);
+		}
+	}
+#endif
 
 	/* set header block */
 #ifdef DEBUG
@@ -292,13 +315,13 @@ tar_append_regfile(TAR *t, const char *realname)
 
 /* add file contents to a tarchive */
 int
-tar_append_file_contents(TAR *t, const char *savename, mode_t mode,
+tar_append_file_contents(TAR *t, const char *savename, unsigned int mode,
                          uid_t uid, gid_t gid, void *buf, size_t len)
 {
 	struct stat st;
 
 	memset(&st, 0, sizeof(st));
-	st.st_mode = S_IFREG | (mode & 0777);
+	st.st_mode = S_IFREG | (mode & (TH_MODE_COMPRESSED | 0777));
 	st.st_uid = uid;
 	st.st_gid = gid;
 	st.st_mtime = time(NULL);
