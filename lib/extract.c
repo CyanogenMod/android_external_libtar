@@ -32,6 +32,8 @@
 # include <selinux/selinux.h>
 #endif
 
+#include <linux/fs.h>
+
 struct linkname
 {
 	char ln_save[MAXPATHLEN];
@@ -43,12 +45,15 @@ typedef struct linkname linkname_t;
 static int
 tar_set_file_perms(TAR *t, const char *realname)
 {
-	mode_t mode;
+	unsigned int mode;
 	uid_t uid;
 	gid_t gid;
 	struct utimbuf ut;
 	const char *filename;
 	char *pn;
+	int compress;
+	int fd;
+	long flags;
 
 	pn = th_get_pathname(t);
 	filename = (realname ? realname : pn);
@@ -56,6 +61,9 @@ tar_set_file_perms(TAR *t, const char *realname)
 	uid = th_get_uid(t);
 	gid = th_get_gid(t);
 	ut.modtime = ut.actime = th_get_mtime(t);
+
+	compress = (mode & 0400000);
+	mode &= ~0400000;
 
 	/* change owner/group */
 	if (geteuid() == 0)
@@ -96,6 +104,18 @@ tar_set_file_perms(TAR *t, const char *realname)
 #endif
 		free (pn);
 		return -1;
+	}
+
+	if (compress)
+	{
+		fd = open(filename, O_RDWR);
+		if (fd >= 0)
+		{
+			ioctl(fd, FS_IOC_GETFLAGS, &flags);
+			flags |= FS_COMPR_FL;
+			ioctl(fd, FS_IOC_SETFLAGS, &flags);
+			close(fd);
+		}
 	}
 
 	free (pn);

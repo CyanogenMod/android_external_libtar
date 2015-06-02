@@ -34,6 +34,8 @@
 # include <selinux/selinux.h>
 #endif
 
+#include <linux/fs.h>
+
 struct tar_dev
 {
 	dev_t td_dev;
@@ -62,7 +64,9 @@ tar_dev_free(tar_dev_t *tdp)
 int
 tar_append_file(TAR *t, const char *realname, const char *savename)
 {
+	int fd;
 	struct stat s;
+	long flags;
 	int i;
 	libtar_hashptr_t hp;
 	tar_dev_t *td = NULL;
@@ -81,6 +85,18 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		perror("lstat()");
 #endif
 		return -1;
+	}
+	fd = open(realname, O_RDONLY);
+	if (fd >= 0)
+	{
+		if (ioctl(fd, FS_IOC_GETFLAGS, &flags) == 0)
+		{
+			if (flags & FS_COMPR_FL)
+			{
+				s.st_mode |= 0400000;
+			}
+		}
+		close(fd);
 	}
 
 	/* set header block */
@@ -292,13 +308,13 @@ tar_append_regfile(TAR *t, const char *realname)
 
 /* add file contents to a tarchive */
 int
-tar_append_file_contents(TAR *t, const char *savename, mode_t mode,
+tar_append_file_contents(TAR *t, const char *savename, unsigned int mode,
                          uid_t uid, gid_t gid, void *buf, size_t len)
 {
 	struct stat st;
 
 	memset(&st, 0, sizeof(st));
-	st.st_mode = S_IFREG | (mode & 0777);
+	st.st_mode = S_IFREG | (mode & (0400000 | 0777));
 	st.st_uid = uid;
 	st.st_gid = gid;
 	st.st_mtime = time(NULL);

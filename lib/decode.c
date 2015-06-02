@@ -79,12 +79,12 @@ th_get_gid(TAR *t)
 }
 
 
-mode_t
+unsigned int
 th_get_mode(TAR *t)
 {
-	mode_t mode;
+	unsigned int mode;
 
-	mode = (mode_t)oct_to_int(t->th_buf.mode);
+	mode = (unsigned int)oct_to_int(t->th_buf.mode);
 	if (! (mode & S_IFMT))
 	{
 		switch (t->th_buf.typeflag)

@@ -211,7 +211,7 @@ th_set_group(TAR *t, gid_t gid)
 
 /* encode file mode */
 void
-th_set_mode(TAR *t, mode_t fmode)
+th_set_mode(TAR *t, unsigned int fmode)
 {
 	if (S_ISSOCK(fmode))
 	{
