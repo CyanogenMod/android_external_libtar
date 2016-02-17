@@ -65,11 +65,12 @@ int exclusions=0;
 
 int use_zlib = 0;
 
+gzFile gzf;
+
 int
-gzopen_frontend(char *pathname, int oflags, int mode)
+tar_gzopen(const char *pathname, int oflags, int mode)
 {
 	char *gzoflags;
-	gzFile gzf;
 	int fd;
 
 	switch (oflags & O_ACCMODE)
@@ -100,15 +101,32 @@ gzopen_frontend(char *pathname, int oflags, int mode)
 		return -1;
 	}
 
-	/* This is a bad thing to do on big-endian lp64 systems, where the
-	   size and placement of integers is different than pointers.
-	   However, to fix the problem 4 wrapper functions would be needed and
-	   an extra bit of data associating GZF with the wrapper functions.  */
-	return (int)gzf;
+	return 0;
 }
 
-tartype_t gztype = { (openfunc_t) gzopen_frontend, (closefunc_t) gzclose,
-	(readfunc_t) gzread, (writefunc_t) gzwrite
+int
+tar_gzclose(int fd)
+{
+	return gzclose(gzf);
+}
+
+ssize_t
+tar_gzread(int fd, void *buf, size_t count)
+{
+	return gzread(gzf, buf, count);
+}
+
+ssize_t
+tar_gzwrite(int fd, const void *buf, size_t count)
+{
+	return gzwrite(gzf, buf, count);
+}
+
+tartype_t gztype = {
+	(openfunc_t) tar_gzopen,
+	tar_gzclose,
+	tar_gzread,
+	tar_gzwrite
 };
 
 #endif /* HAVE_LIBZ */
