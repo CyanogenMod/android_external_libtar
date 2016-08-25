@@ -22,6 +22,7 @@ LOCAL_SRC_FILES := lib/append.c \
 
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/lib $(LOCAL_PATH)/compat $(LOCAL_PATH)/listhash
+LOCAL_STATIC_LIBRARIES := libselinux
 LOCAL_CFLAGS += -DHAVE_SELINUX
 
 include $(BUILD_STATIC_LIBRARY)
